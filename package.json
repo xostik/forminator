@@ -1,0 +1,26 @@
+{
+  "name": "InfinniUI",
+  "devDependencies": {
+    "grunt": "~0.4.2",
+    "grunt-cli": "~0.1.9",
+    "grunt-concat-sourcemap": "^0.4.3",
+    "grunt-contrib-concat": "~0.3.0",
+    "grunt-contrib-less": "latest",
+    "grunt-contrib-copy": "0.5.x",
+    "grunt-jscs": "latest",
+    "mocha": "^1.21.4"
+  },
+  "dependencies": {
+      "grunt": "~0.4.2",
+      "grunt-cli": "~0.1.9",
+      "grunt-concat-sourcemap": "^0.4.3",
+      "grunt-contrib-less": "latest",
+      "grunt-contrib-concat": "~0.3.0",
+      "grunt-contrib-copy": "0.5.x",
+      "grunt-jscs": "latest",
+      "mocha": "^1.21.4"
+  },
+  "scripts": {
+    "start": "node httpserver.js"
+  }
+}
