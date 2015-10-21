@@ -43,7 +43,6 @@ var EventableMixin = {
     },
 
     off: function(eventName, handler){
-
         var eventNameSeparated = this._separateEventName(eventName),
             tags = eventNameSeparated.tags,
             handlers = this._getHandlersByName(eventNameSeparated.name),
