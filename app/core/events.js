@@ -2,10 +2,9 @@ var EventableMixin = {
     trigger: function(eventName, params, additionArgs){
         var eventNameSeparated = this._separateEventName(eventName),
             tags = eventNameSeparated.tags,
-            handlers = this._getHandlersWithTag(eventNameSeparated.name, '_noTag'),
+            handlers = this._getHandlersByName(eventNameSeparated.name),
             adaptedArgs = this._prepareArgumentsForTrigger(eventName, params),
-            handleList = [],
-            triggerable;
+            handlerTags, triggerable;
 
         for(var i = 0, ii = handlers.length; i<ii; i++){
             handlerTags = handlers[i]._tags;
@@ -37,39 +36,34 @@ var EventableMixin = {
             handlers = this._getHandlersByName(eventNameSeparated.name),
             eventsListWithTag;
 
-        tags['_noTag'] = true;
         handler._data = data;
         handler._tags = tags;
 
-        for(var tag in tags){
-            eventsListWithTag = this._getHandlersWithTag(eventNameSeparated.name, tag);
-
-            eventsListWithTag.push(handler);
-        }
+        handlers.push(handler);
     },
 
     off: function(eventName, handler){
+
         var eventNameSeparated = this._separateEventName(eventName),
             tags = eventNameSeparated.tags,
-            eventsListWithTag, index;
+            handlers = this._getHandlersByName(eventNameSeparated.name),
+            removeList = [],
+            handlerTags, removable;
 
-        if(tags.length == 0){
-            tags['_noTag'] = true;
-        }
-
-
-        for(var tag in tags){
-            eventsListWithTag = this._getHandlersWithTag(eventNameSeparated.name, tag);
-
-            if(handler){
-                index = eventsListWithTag.indexOf(handler);
-                if(index > -1){
-                    eventsListWithTag.splice(index, 1);
+        for(var i = 0, ii = handlers.length; i<ii; i++){
+            handlerTags = handlers[i]._tags;
+            removable = true;
+            for(var tag in tags){
+                if( !(tag in handlerTags)){
+                    removable = false;
                 }
-            }else{
-                eventsListWithTag.splice(0, eventsListWithTag.length);
             }
 
+            if(removable){
+                handlers.splice(i, 1);
+                i--;
+                ii--;
+            }
         }
     },
 
@@ -77,18 +71,10 @@ var EventableMixin = {
         this.handlers = this.handlers || {};
 
         if(!this.handlers[eventName]){
-            this.handlers[eventName] = {};
+            this.handlers[eventName] = [];
         }
 
         return this.handlers[eventName];
-    },
-
-    _getHandlersWithTag: function(eventName, tagName){
-        if(!this.handlers[eventName][tagName]){
-            this.handlers[eventName][tagName] = [];
-        }
-
-        return this.handlers[eventName][tagName];
     },
 
 
