@@ -17,3 +17,10 @@ _.extend(FakeEventWithHierarchy.prototype, EventableMixin, {
         return this.parent;
     }
 });
+
+
+
+function FakeTreeEvent(){
+}
+
+_.extend(FakeTreeEvent.prototype, TreeEventableMixin);

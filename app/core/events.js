@@ -4,7 +4,8 @@ var EventableMixin = {
             tags = eventNameSeparated.tags,
             handlers = this._getHandlersByName(eventNameSeparated.name),
             adaptedArgs = this._prepareArgumentsForTrigger(eventName, params),
-            handlerTags, triggerable;
+            result = true,
+            result_i, handlerTags, triggerable;
 
         for(var i = 0, ii = handlers.length; i<ii; i++){
             handlerTags = handlers[i]._tags;
@@ -15,8 +16,18 @@ var EventableMixin = {
                 }
             }
 
+            if(handlers[i]._owner && handlers[i]._owner.isRemoved && handlers[i]._owner.isRemoved()){
+                handlers.splice(i, 1);
+                i--;
+                continue;
+            }
+
             if(triggerable){
-                handlers[i](adaptedArgs, additionArgs, handlers[i]._data);
+                result_i = handlers[i](adaptedArgs, additionArgs, handlers[i]._data);
+                if( result_i !== false ){
+                    result_i = true;
+                }
+                result = result && result_i;
             }
         }
 
@@ -28,9 +39,11 @@ var EventableMixin = {
                 this._capturingEvent(eventName, adaptedArgs);
             }
         }
+
+        return result;
     },
 
-    on: function(eventName, handler, data){
+    on: function(eventName, handler, data, owner){
         var eventNameSeparated = this._separateEventName(eventName),
             tags = eventNameSeparated.tags,
             handlers = this._getHandlersByName(eventNameSeparated.name),
@@ -38,6 +51,7 @@ var EventableMixin = {
 
         handler._data = data;
         handler._tags = tags;
+        handler._owner = owner;
 
         handlers.push(handler);
     },
@@ -156,3 +170,133 @@ var EventableMixin = {
         return result;
     }
 };
+
+var TreeEventableMixin = {
+    on: function(eventName, handler, data, owner){
+        var nodeWithHandlers = this._getHandlersByEventName(eventName);
+        var bindId;
+
+        nodeWithHandlers._counter = nodeWithHandlers._counter || 1;
+        bindId = nodeWithHandlers._counter;
+        nodeWithHandlers._counter++;
+
+        handler._data = data;
+        handler._owner = owner;
+        handler._bindId = bindId;
+
+        nodeWithHandlers[bindId] = handler;
+
+        return bindId;
+    },
+
+    off: function(eventName, bindId){
+        var nodeWithHandlers = this._getHandlersByEventName(eventName);
+
+        if(bindId){
+            if(nodeWithHandlers[bindId]){
+                delete nodeWithHandlers[bindId];
+            }
+        }else{
+            this._clearObject(nodeWithHandlers);
+        }
+    },
+
+    trigger: function(eventName, data, params){
+        var nodeWithHandlers = this._getHandlersByEventName(eventName);
+        var deindexedEventName;
+
+        for(var k in nodeWithHandlers){
+            if(typeof nodeWithHandlers[k] == 'function'){
+                nodeWithHandlers[k](data, nodeWithHandlers[k]._data);
+            }
+        }
+
+        deindexedEventName = this._deindexEventName(eventName);
+
+        if(deindexedEventName != eventName){
+            nodeWithHandlers = this._getHandlersByEventName(deindexedEventName);
+
+            for(var k in nodeWithHandlers){
+                if(typeof nodeWithHandlers[k] == 'function'){
+                    nodeWithHandlers[k](data, nodeWithHandlers[k]._data);
+                }
+            }
+        }
+    },
+
+    triggerTree: function(eventName, data, params){
+        var splitted = this._splitEventName(eventName);
+        var paths = splitted.path;
+        var eventName = splitted.eventName;
+
+        for(var i = paths.length-1; i>=0; i++){
+            if(this._isIntegerInString(paths[i])){
+                break;
+            }else{
+
+            }
+        }
+        // идти от последнего до первого path и ттриггерить события, если не цифра
+        // взять дерево хендлеров и сделать обход останавливаясь на цифрах
+    },
+
+    _getHandlersByEventName: function(eventName){ // eventName:path.path.path...
+        var splitted = this._splitEventName(eventName);
+        var paths = splitted.path;
+        var eventName = splitted.eventName;
+        var nodeWithHandlers;
+
+
+        this._handlers = this._handlers || {};
+        nodeWithHandlers = this._handlers;
+
+        for(var i = 0, ii = paths.length; i<ii; i++){
+            if(!nodeWithHandlers[paths[i]]){
+                nodeWithHandlers[paths[i]] = {};
+            }
+            nodeWithHandlers = nodeWithHandlers[paths[i]];
+        }
+
+        if(!nodeWithHandlers[eventName]){
+            nodeWithHandlers[eventName] = {};
+        }
+        nodeWithHandlers = nodeWithHandlers[eventName];
+
+        return nodeWithHandlers;
+    },
+
+    _splitEventName: function(eventName){
+        var paths = eventName.split('.');
+        var firstPaths = paths[0].split(':');
+        var eventName;
+
+        eventName = firstPaths[0] + ':';
+        if(firstPaths.length == 2){
+            paths[0] = firstPaths[1];
+        }else{
+            paths = [];
+        }
+
+        return {
+            eventName: eventName,
+            paths: paths
+        };
+    },
+
+    _deindexEventName: function(eventName){
+        var result = '.' + eventName + '.';
+        result = result.replace(/\.\d+\./g, '.@i.');
+        return result.substr(1, result.length-2);
+    },
+
+    _clearObject: function(obj){
+        for(var k in obj){
+            delete obj[k];
+        }
+    },
+
+    _isIntegerInString: function(s){
+        return /^\d+$/.test(s);
+    }
+};
+

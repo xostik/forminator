@@ -1,3 +1,71 @@
+_.extend( kulibin.utils, {
+    findObjectPropertyByPath: function(object, path){
+        if(!path){
+            return object;
+        }
+
+        var paths = path.split('.');
+        var key;
+        var result = object;
+
+        if($.isPlainObject(object)){
+
+            for(var i = 0, ii = paths.length; i < ii; i++){
+                key = paths[i];
+                result = result[key];
+
+                if(result === undefined){
+                    return undefined;
+                }
+            }
+
+            return result;
+
+        }else{
+            return undefined;
+        }
+    },
+
+    setValueToObjectByPath: function(object, path, value){
+        if(!path){
+            this.replaceObject(object, value);
+            return;
+        }
+
+        var paths = path.split('.');
+        var key;
+        var result = object;
+
+        for(var i = 0, ii = paths.length - 1; i < ii; i++){
+            key = paths[i];
+            result = result[key];
+
+            if(result === undefined){
+                result[key] = {};
+                result = result[key];
+            }
+        }
+
+        key = paths[paths.length - 1];
+        result[key] = value;
+    },
+
+    replaceObject: function(o1, o2){
+        if(o1 != o2){
+            for(var k in o1){
+                delete o1[k];
+            }
+
+            if(o2){
+                for(var k in o2){
+                    o1[k] = o2[k];
+                }
+            }
+        }
+    }
+});
+
+
 function elementByAddress($el, address){
     var rx = /^[~\$]\(([\s\S]+)\)$/,
         cleanAddress = rx.exec( address )[1],

@@ -59,10 +59,6 @@ var ElementBuilder = Backbone.Model.extend({
 
     a: {
         data: {
-            todoField:{
-                type: 'field',
-                default: ''
-            },
             todoList:{
                 type: 'list',
                 default: [],
@@ -92,8 +88,7 @@ var ElementBuilder = Backbone.Model.extend({
                                 type: 'textField',
                                 width: '8clm',
                                 name: 'createTodoField',
-                                placeholder: 'Введите новое задание',
-                                binding: '~(todoField)'
+                                placeholder: 'Введите новое задание'
 
                             },
                             {
@@ -105,7 +100,7 @@ var ElementBuilder = Backbone.Model.extend({
                                         type: 'action:addItemAction',
                                         source: '~(todoList)', // $(@this/..**/list)   ~(@root/**/todoList/i/montro)  @this @root @item @list @in-list @in-item
                                         value: {
-                                            description: '~(createTodoField)'
+                                            description: '$(createTodoField)'
                                         }
                                     },
                                     {
@@ -143,14 +138,14 @@ var ElementBuilder = Backbone.Model.extend({
                                 {
                                     type: 'label',
                                     name: 'description',
-                                    binding: ''//'~(@root/todo/todoList/@i/description)'
+                                    binding: '~(@context/@i/description)'//'~(@root/todo/todoList/@i/description)'
                                 },
                                 {
                                     type: 'button',
                                     name: 'removeItem',
                                     onClick: {
                                         type: 'removeItemAction',
-                                        item: '$(@this/..**/todoItem)'
+                                        item: '~(@context/@i)'
                                     }
                                 }
 
@@ -543,7 +538,7 @@ var foreveroomPersonPage = {
                     }
                 },
 
-                defaultValue: [
+                default: [
                     {
                         name: 'getComment',
                         url: 'http://site.ru/comment/:id',//'http://site.ru/comment/:id', // 5 -> http://site.ru/comment/5

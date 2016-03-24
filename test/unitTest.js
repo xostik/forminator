@@ -238,6 +238,321 @@ describe('Event', function () {
         });
     });
 
+
+    describe('TreeEventableMixin', function () {
+
+        function genHierarchy(){
+            var els = [];
+
+            for(var i = 0; i < 5; i++){
+                els.push( new FakeEventWithHierarchy());
+            }
+
+            els[0].children.push(els[1]);
+            els[1].parent = els[0];
+
+            els[0].children.push(els[2]);
+            els[2].parent = els[0];
+
+            els[1].children.push(els[3]);
+            els[3].parent = els[1];
+
+            els[3].children.push(els[4]);
+            els[4].parent = els[3];
+
+            return els[0];
+        }
+
+        it('Simplest event', function (done) {
+            // Given
+            var ev = new FakeTreeEvent();
+            var counter = 0;
+            ev.on('change', testHandler);
+
+            //When
+            ev.trigger('change');
+
+            function testHandler(){
+
+                counter++;
+
+                // Then
+                assert.equal(counter, 1, 'testHandler callad in right order');
+            }
+
+            assert.equal(counter, 1, 'handlers is been called');
+            done();
+        });
+
+        it('Event with path', function (done) {
+            // Given
+            var ev = new FakeTreeEvent();
+            var counter = 0;
+            ev.on('change:a', testHandler);
+            ev.on('change:a.b', testHandler2);
+
+            //When
+            ev.trigger('change:a');
+            ev.trigger('change:a.b');
+
+            function testHandler(){
+
+                counter++;
+
+                // Then
+                assert.equal(counter, 1, 'testHandler callad in right order');
+            }
+
+            function testHandler2(){
+
+                counter++;
+
+                // Then
+                assert.equal(counter, 2, 'testHandler2 callad in right order');
+            }
+
+            assert.equal(counter, 2, 'handlers is been called');
+            done();
+        });
+
+        it('Different events with one path', function (done) {
+            // Given
+            var ev = new FakeTreeEvent();
+            var counter = 0;
+            ev.on('change:a', testHandler);
+            ev.on('click:a', testHandler2);
+
+            //When
+            ev.trigger('change:a');
+            ev.trigger('click:a');
+
+            function testHandler(){
+
+                counter++;
+
+                // Then
+                assert.equal(counter, 1, 'testHandler callad in right order');
+            }
+
+            function testHandler2(){
+
+                counter++;
+
+                // Then
+                assert.equal(counter, 2, 'testHandler2 callad in right order');
+            }
+
+            assert.equal(counter, 2, 'handlers is been called');
+            done();
+        });
+
+        it('Unsubscribe simple event', function (done) {
+            // Given
+            var ev = new FakeTreeEvent();
+            var counter = 0;
+            ev.on('change', testHandler);
+
+            //When
+            ev.trigger('change');
+
+            ev.off('change');
+
+            ev.trigger('change');
+
+            function testHandler(){
+
+                counter++;
+
+                // Then
+                assert.equal(counter, 1, 'testHandler callad in right order');
+            }
+
+            assert.equal(counter, 1, 'handlers is been called');
+            done();
+        });
+
+        it('Unsubscribe event from path', function (done) {
+            // Given
+            var ev = new FakeTreeEvent();
+            var counter = 0;
+            ev.on('change:a', testHandler);
+            ev.on('change:a.b', testHandler2);
+
+            //When
+            ev.trigger('change:a');
+            ev.trigger('change:a.b');
+
+            ev.off('change:a');
+
+            ev.trigger('change:a');
+            ev.trigger('change:a.b');
+
+            function testHandler(){
+
+                counter++;
+
+                // Then
+                assert.equal(counter, 1, 'testHandler callad in right order');
+            }
+
+            assert.equal(counter, 1, 'handlers is been called');
+            done();
+        });
+
+        it('Data in trigger', function (done) {
+            // Given
+            var ev = new FakeEvent();
+            ev.on('test', testHandler);
+
+            //When
+            ev.trigger('test', undefined, 1);
+
+            function testHandler(args, additionArgs){
+
+                // Then
+                assert.equal(additionArgs, 1, 'additional argument was passed right');
+                done();
+            }
+        });
+
+        it('Data in subscribe', function (done) {
+            // Given
+            var ev = new FakeEvent();
+            ev.on('test', testHandler, 4);
+
+            //When
+            ev.trigger('test');
+
+            function testHandler(args, triggerArgs, handleArgs){
+
+                // Then
+                assert.equal(handleArgs, 4, 'argument was passed right');
+                done();
+            }
+        });
+
+
+        it('Namespace event', function (done) {
+            // Given
+            var ev = new FakeEvent(),
+                counter_1, counter_2;
+
+            ev.on('test', testHandler);
+            ev.on('test.ns', testHandler2);
+
+            //When
+            ev.trigger('test');
+            ev.trigger('test.ns');
+
+            function testHandler(args){
+                counter_1++;
+
+                // Then
+                assert.isTrue(args.type == 'test', 'event type is right');
+                done();
+            }
+
+            function testHandler2(args){
+                counter_2++;
+
+                // Then
+                assert.isTrue(args.type == 'test' || args.type == 'test.ns', 'event type is right');
+                done();
+            }
+
+            // Then
+            assert.equal(counter_1, 1, 'event triggered once');
+            assert.equal(counter_2, 1, 'event triggered twice');
+        });
+
+
+        it('Event with history and value', function (done) {
+            // Given
+            var ev = new FakeEvent(),
+                params = {
+                    direction: 'none',
+                    target: 0,
+                    currentTarget: 1,
+                    type: 'test2',
+                    parentEvent: {
+                        direction: 'none',
+                        target: 0,
+                        currentTarget: 0,
+                        type: 'test1',
+                        historySize: 0,
+                        value:3
+                    },
+                    historySize: 1,
+                    value:4
+                };
+            ev.on('test3', testHandler);
+
+            //When
+            ev.trigger('test3', {sourceEventData: params, value: 4});
+
+            function testHandler(args){
+
+                // Then
+                assert.isDefined(args,'args is defined');
+                assert.equal(args.currentTarget, ev, 'currentTarget is right');
+                assert.equal(args.target, 0, 'target is right');
+                assert.equal(args.value, 4, 'value is right');
+                assert.equal(args.type, 'test3', 'event type is right');
+
+                assert.equal(args.historySize, 2, 'history has 2 elements');
+                assert.isDefined(args.parentEvent, 'has parent event');
+                assert.isDefined(args.parentEvent.parentEvent, 'has parent event of parent event');
+                assert.isUndefined(args.parentEvent.parentEvent.parentEvent, 'has not parent on 3 level of event hierarchy');
+                done();
+            }
+        });
+
+        it('Hierarchy simplest event', function (done) {
+            // Given
+            var ev = genHierarchy(),
+                iterator = 0;
+            ev = ev.children[0].children[0];
+
+            ev.on('test', testHandler);
+            ev.parent.on('test', testHandler2);
+            ev.parent.parent.on('test', testHandler3);
+
+            //When
+            ev.trigger('test', {direction: 'bubbling'});
+
+            // Then
+            function testHandler(args){
+                assert.isDefined(args,'args is defined');
+                assert.equal(args.currentTarget, ev, 'currentTarget is right');
+                assert.equal(args.target, ev, 'target is right');
+                assert.equal(args.historySize, 0, 'history is empty');
+                assert.isUndefined(args.parentEvent, 'has not parent event');
+                assert.equal(iterator, 0, 'this handler call first');
+                iterator++;
+            }
+            function testHandler2(args){
+                assert.isDefined(args,'args is defined');
+                assert.equal(args.currentTarget, ev.parent, 'currentTarget is right');
+                assert.equal(args.target, ev, 'target is right');
+                assert.equal(args.historySize, 1, 'history has 1 element');
+                assert.equal(iterator, 1, 'this handler call second');
+                iterator++;
+            }
+            function testHandler3(args){
+                assert.isDefined(args,'args is defined');
+                assert.equal(args.currentTarget, ev.parent.parent, 'currentTarget is right');
+                assert.equal(args.target, ev, 'target is right');
+                assert.equal(args.historySize, 2, 'history has 2 element');
+                assert.isDefined(args.parentEvent.parentEvent, 'has parent event of parent event');
+                assert.isUndefined(args.parentEvent.parentEvent.parentEvent, 'has not parent on 3 level of event hierarchy');
+                assert.equal(args.type, 'test', 'right type of event');
+                assert.equal(iterator, 2, 'this handler call second');
+
+                done();
+            }
+        });
+    });
+
 });
 
 describe('Model', function () {
